@@ -31,7 +31,7 @@ def generate_random_spheres(num_spheres=10, random_seed=None):
     return spheres
 
 
-# NEW: Apply Planning Scene changes
+# Apply Planning Scene changes
 def apply_scene(node, client, objects):
     scene = PlanningScene()
     scene.is_diff = True

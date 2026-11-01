@@ -10,7 +10,7 @@ def generate_launch_description():
 
     pkg_share = os.path.join(get_package_share_directory(package_name))
 
-    moveit_model_path = os.path.join(pkg_share,'launch',urdf_name)
+    moveit_model_path = os.path.join(pkg_share,'launch',urdf_name) #cr10_moveit/launch/demo.launch.py
     ld = LaunchDescription()
     included_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(moveit_model_path)

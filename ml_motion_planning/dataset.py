@@ -3,7 +3,7 @@ import numpy as np
 # Dataset configuration
 DOF = 6
 NUM_WAYPOINTS = 32
-MAX_OBSTACLES = 10
+MAX_OBSTACLES = 20
 
 
 def create_sample(start, goal, obstacles, trajectory):

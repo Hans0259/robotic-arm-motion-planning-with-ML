@@ -16,6 +16,40 @@ from sensor_msgs.msg import JointState
 
 from dataset import DOF, NUM_WAYPOINTS, MAX_OBSTACLES, create_sample, save_dataset
 
+# ==========================================
+# Dataset Collection Configuration
+# ==========================================
+
+CONFIG = {
+    # Robot
+    "group": "cr10_group",
+    "joints": [
+        "joint1", "joint2", "joint3",
+        "joint4", "joint5", "joint6"
+    ],
+    "frame": "base_link",
+
+    # Motion Planning
+    "planner_id": "RRTConnectkConfigDefault",
+    "planning_time": 5.0,
+
+    # Dataset Collection
+    "samples": 100,
+    "max_attempts": 700,
+    "obstacles": 5,
+
+    # Validation
+    "goal_tolerance": 0.01,
+    "check_step": 0.05,
+
+    # Random Seed
+    "seed": 42,
+
+    # Dataset Output
+    "output": "data/train_dataset.npz"
+}
+
+
 # Joint position limits from MoveIt2 URDF
 JOINT_LOWER = np.array([
     -3.14,
@@ -242,33 +276,36 @@ class Collector(Node):
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--group', required=True, help='MoveIt planning group name')
-    parser.add_argument('--joints', nargs=DOF, required=True, help='Six MoveIt joint names in order')
-    parser.add_argument('--frame', default='base_link', help='Sphere coordinates reference frame')
-    parser.add_argument('--planner-id', default='RRTConnectkConfigDefault')
-    parser.add_argument('--samples', type=int, default=20)
-    parser.add_argument('--max-attempts', type=int, default=200)
-    parser.add_argument('--obstacles', type=int, default=5)
-    parser.add_argument('--goal-delta', type=float, default=0.35, help='Goal joint variation (radians)')
-    parser.add_argument('--goal-tolerance', type=float, default=0.01)
-    parser.add_argument('--check-step', type=float, default=0.05, help='Maximum joint interpolation step (rad)')
-    parser.add_argument('--planning-time', type=float, default=5.0)
-    parser.add_argument('--seed', type=int, default=42)
-    parser.add_argument('--output', default='data/train_dataset.npz')
-    args = parser.parse_args()
+
+    # Load configuration
+    args = argparse.Namespace(**CONFIG)
+
+    # Validate configuration
     if not 0 <= args.obstacles <= MAX_OBSTACLES:
-        parser.error(f'--obstacles must be in [0,{MAX_OBSTACLES}]')
+        raise ValueError(
+            f"Number of obstacles must be between 0 and {MAX_OBSTACLES}"
+        )
+
+    if len(args.joints) != DOF:
+        raise ValueError(
+            f"Expected {DOF} joint names"
+        )
+
+    # Initialize ROS2
     rclpy.init()
+
     node = None
+
     try:
         node = Collector(args)
         node.collect()
+
     finally:
-        if node:
+        if node is not None:
             node.destroy_node()
+
         rclpy.shutdown()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

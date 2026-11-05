@@ -66,7 +66,12 @@ for epoch in range(EPOCHS):
 
         batch_size = z.shape[0]
 
-        # Flatten trajectory: (B, 32, 6) -> (B, 192)
+        # Extract intermediate waypoints only
+        # (B, 32, 6) -> (B, 30, 6)
+        z = z[:, 1:-1, :]
+
+        # Flatten intermediate trajectory
+        # (B, 30, 6) -> (B, 180)
         z = z.reshape(batch_size, -1)
 
         # Sample Gaussian noise

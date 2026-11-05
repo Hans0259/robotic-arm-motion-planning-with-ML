@@ -7,7 +7,7 @@ class FlowMatchingModel(nn.Module):
     def __init__(self, dof=6, num_waypoints=32, max_obstacles=20):
         super().__init__()
 
-        self.trajectory_dim = dof * num_waypoints
+        self.trajectory_dim = dof * (num_waypoints - 2)
         self.condition_dim = 2 * dof + max_obstacles * 4
 
         input_dim = self.trajectory_dim + self.condition_dim + 1
@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
     B = 8
 
-    x_t = torch.randn(B, 192) #noise trajectory xt
+    x_t = torch.randn(B, model.trajectory_dim) #noise trajectory xt
     t = torch.rand(B, 1) #Flow Matching Time t
 
     start = torch.randn(B, 6) #Start Configuration
@@ -63,3 +63,4 @@ if __name__ == "__main__":
 
     print("Input shape:", x_t.shape)
     print("Output shape:", velocity.shape)
+    print("Network input dimension:", model.network[0].in_features)

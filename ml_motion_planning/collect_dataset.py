@@ -34,8 +34,8 @@ CONFIG = {
     "planning_time": 5.0,
 
     # Dataset Collection
-    "samples": 100,
-    "max_attempts": 700,
+    "samples": 1000,
+    "max_attempts": 7000,
     "obstacles": 5,
 
     # Validation

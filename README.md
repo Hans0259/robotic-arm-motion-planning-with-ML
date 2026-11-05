@@ -176,8 +176,7 @@ ros2 run dobot_planning_scene random_scene
 
 ```bash
 cd ~/dobot_ws
-source /opt/ros/humble/setup.bash
-source ~/dobot_ws/install/setup.bash
+source install/setup.bash
 ros2 launch dobot_moveit moveit_demo.launch.py
 ```
 
@@ -198,7 +197,6 @@ ml_motion_planning/
 
 ```bash
 cd ~/dobot_ws/src/DOBOT_6Axis_ROS2_V4/ml_motion_planning
-source /opt/ros/humble/setup.bash
 source ~/dobot_ws/install/setup.bash
 #	批量生成随机场景并调用 RRTConnect 收集轨迹
 python3 collect_dataset.py 
@@ -208,7 +206,10 @@ python3 torch_dataset.py
 python3 flow_model.py
 #	使用 Conditional Flow Matching 训练神经网络
 python3 train_flow.py
-
+#   通过训练好的神经网络，用 Euler Integration Inference 结果
+python3 inference.py
+#   观察joints在每一个step的位置，判断学习结果
+python3 visualize_trajectory.py
 
 
 ## LOG

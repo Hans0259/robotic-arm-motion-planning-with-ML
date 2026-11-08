@@ -32,6 +32,4 @@
     <disable_collisions link1="Link4" link2="Link6" reason="Never"/>
     <disable_collisions link1="Link5" link2="Link6" reason="Adjacent"/>
 
-    <!-- base_link 与固定支架直接接触 -->
-    <disable_collisions link1="base_link" link2="support_link" reason="Adjacent"/>
 </robot>

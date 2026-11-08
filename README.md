@@ -13,8 +13,6 @@ dobot_planning_scene/
 │   └── spheres_generator.py   # 构造球形 CollisionObject
 ├── launch/
 │   └── planning_scene.launch.py
-├── meshes/
-│   └── support.STL            # 预留的支架模型
 ├── package.xml
 ├── setup.cfg
 └── setup.py

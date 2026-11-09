@@ -16,7 +16,7 @@ DATASET_PATH = BASE_DIR / "data/train_dataset.npz"               # provide start
 MODEL_PATH = BASE_DIR / "flow_model.pth"                # trained model weights
 OUTPUT_PATH = BASE_DIR / "data/generated_trajectory.npz"         #output path for generated trajectory
   
-SAMPLE_INDEX = 0
+SAMPLE_INDEX = 1
 NUM_STEPS = 30
 RANDOM_SEED = 42
 

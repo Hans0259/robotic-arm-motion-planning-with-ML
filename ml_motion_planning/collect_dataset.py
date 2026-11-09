@@ -16,6 +16,10 @@ from sensor_msgs.msg import JointState
 
 from dataset import DOF, NUM_WAYPOINTS, MAX_OBSTACLES, create_sample, save_dataset
 
+from dobot_planning_scene.random_scene import apply_scene,remove_spheres
+from dobot_planning_scene.grid_random_algorithm import generate_grid_spheres
+from dobot_planning_scene.ground_generator import generate_ground
+
 # ==========================================
 # Dataset Collection Configuration
 # ==========================================
@@ -34,9 +38,9 @@ CONFIG = {
     "planning_time": 5.0,
 
     # Dataset Collection
-    "samples": 5000,
-    "max_attempts": 50000,
-    "obstacles": 5,
+    "samples": 2000,
+    "max_attempts": 10000,
+    "obstacles": 15,
 
     # Validation
     "goal_tolerance": 0.01,
@@ -149,10 +153,6 @@ class Collector(Node):
         return None
 
     def set_obstacles(self):
-        # Reuse the three existing helpers in dobot_planning_scene/random_scene.py.
-        from dobot_planning_scene.random_scene import (
-            generate_random_spheres, apply_scene, remove_spheres,
-        )
 
         # Remove last iteration's spheres before creating the next scene.
         if self.previous_ids:
@@ -160,9 +160,12 @@ class Collector(Node):
             self.previous_ids = []
 
         seed = self.args.scene_seed
-        objects = generate_random_spheres(
-            num_spheres=self.args.obstacles, random_seed=seed
+
+        objects = generate_grid_spheres(
+            num_spheres=self.args.obstacles,
+            random_seed=seed
         )
+
         encoded = []
         for obj in objects:
             # Keep IDs from Harry's generator (sphere_0, sphere_1, ...).
@@ -178,8 +181,16 @@ class Collector(Node):
             r = float(obj.primitives[0].dimensions[0])
             encoded.append([p.x, p.y, p.z, r])
 
-        if objects:
-            apply_scene(self, self.apply, objects)
+        # Generate fixed ground
+        ground = generate_ground()
+
+        # Apply ground and spheres
+        apply_scene(
+            self,
+            self.apply,
+            [ground] + objects
+        )  
+
         self.previous_ids = [obj.id for obj in objects]
         return encoded
 

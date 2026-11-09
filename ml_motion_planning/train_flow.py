@@ -12,8 +12,8 @@ from flow_model import FlowMatchingModel
 
 DATASET_PATH = "data/train_dataset.npz"
 
-BATCH_SIZE = 8
-EPOCHS = 100
+BATCH_SIZE = 16
+EPOCHS = 300
 LEARNING_RATE = 1e-3
 
 DEVICE = torch.device(

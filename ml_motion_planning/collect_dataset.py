@@ -34,8 +34,8 @@ CONFIG = {
     "planning_time": 5.0,
 
     # Dataset Collection
-    "samples": 1000,
-    "max_attempts": 7000,
+    "samples": 5000,
+    "max_attempts": 50000,
     "obstacles": 5,
 
     # Validation
@@ -44,6 +44,7 @@ CONFIG = {
 
     # Random Seed
     "seed": 42,
+    "scene_seed": 123,
 
     # Dataset Output
     "output": "data/train_dataset.npz"
@@ -158,7 +159,7 @@ class Collector(Node):
             remove_spheres(self, self.apply, self.previous_ids)
             self.previous_ids = []
 
-        seed = int(self.rng.integers(0, 2**31 - 1))
+        seed = self.args.scene_seed
         objects = generate_random_spheres(
             num_spheres=self.args.obstacles, random_seed=seed
         )
@@ -230,6 +231,10 @@ class Collector(Node):
     def collect(self):
         samples = []
         attempts = 0
+
+        # Generate obstacles only once
+        obs = self.set_obstacles()
+
         while len(samples) < self.args.samples and attempts < self.args.max_attempts:
             attempts += 1
             try:

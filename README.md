@@ -197,6 +197,8 @@ ml_motion_planning/
 
 ```bash
 cd ~/dobot_ws/src/DOBOT_6Axis_ROS2_V4/ml_motion_planning
+
+source /opt/ros/humble/setup.bash
 source ~/dobot_ws/install/setup.bash
 #	批量生成随机场景并调用 RRTConnect 收集轨迹
 python3 collect_dataset.py 

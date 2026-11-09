@@ -13,7 +13,7 @@ from flow_model import FlowMatchingModel
 BASE_DIR = Path(__file__).resolve().parent
 
 DATASET_PATH = BASE_DIR / "data/train_dataset.npz"               # provide start, goal, and obstacle data
-MODEL_PATH = BASE_DIR / "flow_model_endpoint.pth"                # trained model weights
+MODEL_PATH = BASE_DIR / "flow_model.pth"                # trained model weights
 OUTPUT_PATH = BASE_DIR / "data/generated_trajectory.npz"         #output path for generated trajectory
   
 SAMPLE_INDEX = 0

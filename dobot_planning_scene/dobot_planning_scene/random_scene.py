@@ -22,7 +22,7 @@ def generate_random_spheres(num_spheres=10, random_seed=None):
         radius = random.uniform(0.05, 0.2)
         x = random.uniform(-1.0, 1.0)
         y = random.uniform(-1.0, 1.0)
-        z = random.uniform(0.3, 1.0)
+        z = random.uniform(0.3, 1.3)
 
         object_id = f'sphere_{i}'
         sphere_object = generate_spheres(radius, x, y, z, object_id)
@@ -140,11 +140,11 @@ def main(args=None):
         node.get_logger().error(str(error))
 
         # Remove candidate and accepted spheres on failure
-        remove_spheres(
-            node,
-            client,
-            [f'sphere_{i}' for i in range(num_spheres)]
-        )
+        # remove_spheres(
+        #     node,
+        #     client,
+        #     [f'sphere_{i}' for i in range(num_spheres)]
+        # )
 
     node.destroy_node()
     rclpy.shutdown()

@@ -1,6 +1,7 @@
 import random
 import rclpy
-
+from dobot_planning_scene.ground_generator import generate_ground
+from dobot_planning_scene.grid_random_algorithm import generate_grid_spheres
 from dobot_planning_scene.spheres_generator import generate_spheres
 from moveit_msgs.msg import (
     PlanningScene,
@@ -10,19 +11,18 @@ from moveit_msgs.msg import (
 from moveit_msgs.srv import (
     ApplyPlanningScene,
     GetPlanningScene,
-    GetStateValidity,
 )
 
-
+# generate the x,y,z coordinates and radius of a sphere
 def generate_random_spheres(num_spheres=10, random_seed=None):
     random.seed(random_seed)
 
     spheres = []
     for i in range(num_spheres):
         radius = random.uniform(0.05, 0.2)
-        x = random.uniform(-1.3, 1.3)
-        y = random.uniform(-0.5, 0.5)
-        z = random.uniform(0.1, 0.5)
+        x = random.uniform(-1.0, 1.0)
+        y = random.uniform(-1.0, 1.0)
+        z = random.uniform(0.3, 1.3)
 
         object_id = f'sphere_{i}'
         sphere_object = generate_spheres(radius, x, y, z, object_id)
@@ -79,35 +79,30 @@ def main(args=None):
         '/apply_planning_scene'
     )
 
-    # NEW: Clients for current scene and collision checking
+    # Read existing object IDs so previous spheres can be removed.
     scene_client = node.create_client(
         GetPlanningScene,
         '/get_planning_scene'
     )
 
-    validity_client = node.create_client(
-        GetStateValidity,
-        '/check_state_validity'
-    )
-
-    num_spheres = 5
+    num_spheres = 10
     random_seed = None
 
     # Wait for services to be available
-    for service_client in [client, scene_client, validity_client]:
+    for service_client in [client, scene_client]:
         while not service_client.wait_for_service(timeout_sec=1.0):
             if not rclpy.ok():
                 node.destroy_node()
                 rclpy.shutdown()
                 return
             node.get_logger().info('Waiting for MoveIt2 service...')
+    
+    # Apply the ground plane to the planning scene
+    apply_scene(node, client, [generate_ground()])
 
-    # NEW: Get current robot state and existing objects
+    # Scene generation is independent of the current movable-arm posture.
     request_scene = GetPlanningScene.Request()
-    request_scene.components.components = (
-        PlanningSceneComponents.ROBOT_STATE
-        | PlanningSceneComponents.WORLD_OBJECT_NAMES
-    )
+    request_scene.components.components = PlanningSceneComponents.WORLD_OBJECT_NAMES
 
     future = scene_client.call_async(request_scene)
     rclpy.spin_until_future_complete(node, future, timeout_sec=5.0)
@@ -119,13 +114,6 @@ def main(args=None):
         return
 
     current_scene = future.result().scene
-    robot_state = current_scene.robot_state
-
-    if not robot_state.joint_state.name:
-        node.get_logger().error('Robot state is empty')
-        node.destroy_node()
-        rclpy.shutdown()
-        return
 
     # NEW: Remove previously generated spheres
     old_ids = [
@@ -140,76 +128,23 @@ def main(args=None):
             f'Removed {len(old_ids)} old spheres'
         )
 
-    # NEW: Helper to check current robot state
-    def is_state_valid():
-        request = GetStateValidity.Request()
-        request.robot_state = robot_state
-        request.group_name = 'cr10_group'
-
-        future = validity_client.call_async(request)
-        rclpy.spin_until_future_complete(
-            node, future, timeout_sec=5.0
-        )
-
-        if not future.done() or future.result() is None:
-            raise RuntimeError('Collision check failed')
-
-        return future.result().valid
-
-    # NEW: Check initial robot state
-    if not is_state_valid():
-        node.get_logger().error(
-            'Robot is already in collision before sphere generation'
-        )
-        node.destroy_node()
-        rclpy.shutdown()
-        return
-
-    # Generate random spheres
-    random.seed(random_seed)
-    spheres = []
-
     try:
-        for i in range(num_spheres):
-
-            for attempt in range(100):
-
-                # Generate one candidate sphere
-                sphere = generate_random_spheres(1, None)[0]
-                sphere.id = f'sphere_{i}'
-
-                # Temporarily add candidate
-                apply_scene(node, client, [sphere])
-
-                # Check collision with current robot pose
-                if is_state_valid():
-                    spheres.append(sphere)
-                    node.get_logger().info(
-                        f'Sphere {i + 1}/{num_spheres} accepted'
-                    )
-                    break
-
-                # Collision detected: remove and retry
-                remove_spheres(node, client, [sphere.id])
-
-            else:
-                raise RuntimeError(
-                    f'Failed to generate sphere {i + 1}'
-                )
-
+        spheres = generate_grid_spheres()
+        # spheres = generate_random_spheres(num_spheres=num_spheres, random_seed=random_seed)
+        apply_scene(node, client, spheres)
         node.get_logger().info(
-            'Random spheres generate successfully'
+            f'Generated {len(spheres)} grid spheres (seed={random_seed})'
         )
 
     except Exception as error:
         node.get_logger().error(str(error))
 
         # Remove candidate and accepted spheres on failure
-        remove_spheres(
-            node,
-            client,
-            [f'sphere_{i}' for i in range(num_spheres)]
-        )
+        # remove_spheres(
+        #     node,
+        #     client,
+        #     [f'sphere_{i}' for i in range(num_spheres)]
+        # )
 
     node.destroy_node()
     rclpy.shutdown()

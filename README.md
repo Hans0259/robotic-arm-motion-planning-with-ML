@@ -206,7 +206,7 @@ python3 flow_model.py
 python3 train_flow.py
 #   通过训练好的神经网络，用 Euler Integration Inference 结果
 python3 inference.py
-#   观察joints在每一个step的位置，判断学习结果
+#   ML的可视化结果，判断学习结果
 python3 visualize_trajectory.py
 
 

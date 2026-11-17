@@ -197,8 +197,6 @@ ml_motion_planning/
 
 ```bash
 cd ~/dobot_ws/src/DOBOT_6Axis_ROS2_V4/ml_motion_planning
-
-source /opt/ros/humble/setup.bash
 source ~/dobot_ws/install/setup.bash
 # 1. 采集数据（需要 MoveIt 运行）；训练集和验证集各采一次，用不同的 seed 和 output
 python3 collect_dataset.py

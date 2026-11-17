@@ -176,6 +176,8 @@ ros2 run dobot_planning_scene random_scene
 cd ~/dobot_ws
 source install/setup.bash
 ros2 launch dobot_moveit moveit_demo.launch.py
+
+RViz 里有一个 MoveIt RobotState 显示订阅了 /flow_matching/animated_robot
 ```
 
 ###  批量测试
@@ -198,18 +200,26 @@ cd ~/dobot_ws/src/DOBOT_6Axis_ROS2_V4/ml_motion_planning
 
 source /opt/ros/humble/setup.bash
 source ~/dobot_ws/install/setup.bash
-#	批量生成随机场景并调用 RRTConnect 收集轨迹
-python3 collect_dataset.py 
-#	将 NPZ 数据转换为 PyTorch Dataset，用于后续training
-python3 torch_dataset.py
-#	定义预测 Velocity Field 的 MLP 神经网络
-python3 flow_model.py
-#	使用 Conditional Flow Matching 训练神经网络
+# 1. 采集数据（需要 MoveIt 运行）；训练集和验证集各采一次，用不同的 seed 和 output
+python3 collect_dataset.py
+
+# 2. 检查数据集质量；加序号可导出该条专家轨迹用于回放
+python3 check_dataset.py
+python3 check_dataset.py 9
+
+# 3. 训练（内部通过 torch_dataset.py 读取数据）
 python3 train_flow.py
-#   通过训练好的神经网络，用 Euler Integration Inference 结果
+
+# 4. 评估验证集上的无碰撞成功率（需要 MoveIt 运行）
+python3 evaluate.py
+
+# 5. 生成单条轨迹并在 RViz 中回放（回放需要 MoveIt 运行）
 python3 inference.py
-#   观察joints在每一个step的位置，判断学习结果
 python3 visualize_trajectory.py
+
+# 可选的自测，不产生文件
+python3 torch_dataset.py     # 打印数据集大小和字段形状
+python3 flow_model.py        # 打印模型输入输出形状和参数量
 
 
 ## LOG

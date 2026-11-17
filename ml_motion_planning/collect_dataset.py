@@ -16,10 +16,6 @@ from sensor_msgs.msg import JointState
 
 from dataset import DOF, NUM_WAYPOINTS, MAX_OBSTACLES, create_sample, save_dataset
 
-from dobot_planning_scene.random_scene import apply_scene,remove_spheres
-from dobot_planning_scene.grid_random_algorithm import generate_grid_spheres
-from dobot_planning_scene.ground_generator import generate_ground
-
 # ==========================================
 # Dataset Collection Configuration
 # ==========================================
@@ -38,20 +34,19 @@ CONFIG = {
     "planning_time": 5.0,
 
     # Dataset Collection
-    "samples": 2000,
-    "max_attempts": 10000,
-    "obstacles": 15,
+    "samples": 500,
+    "max_attempts": 5000,
+    "obstacles": 10,
 
     # Validation
     "goal_tolerance": 0.01,
     "check_step": 0.05,
 
     # Random Seed
-    "seed": 42,
-    "scene_seed": 123,
+    "seed": 7,
 
     # Dataset Output
-    "output": "data/train_dataset.npz"
+    "output": "data/val_dataset.npz"
 }
 
 
@@ -107,6 +102,20 @@ class Collector(Node):
         self.rng = np.random.default_rng(args.seed)
         self.previous_ids = []
 
+        from dobot_planning_scene.random_scene import apply_scene, remove_spheres
+        from dobot_planning_scene.ground_generator import generate_ground
+
+        # 清除场景中残留的 sphere_*（例如 launch 时生成的 15 个 grid 球）
+        req = GetPlanningScene.Request()
+        req.components.components = PlanningSceneComponents.WORLD_OBJECT_NAMES
+        existing = self.request(self.scenes, req).scene.world.collision_objects
+        old_ids = [o.id for o in existing if o.id.startswith('sphere_')]
+        if old_ids:
+            remove_spheres(self, self.apply, old_ids)
+
+        # 加入地面（只需一次）
+        apply_scene(self, self.apply, [generate_ground()])
+
     def request(self, client, request, timeout=30):
         future = client.call_async(request)
         rclpy.spin_until_future_complete(self, future, timeout_sec=timeout)
@@ -153,17 +162,18 @@ class Collector(Node):
         return None
 
     def set_obstacles(self):
+        # Reuse the existing helpers in dobot_planning_scene/random_scene.py.
+        from dobot_planning_scene.random_scene import apply_scene, remove_spheres
+        from dobot_planning_scene.grid_random_algorithm import generate_grid_spheres
 
         # Remove last iteration's spheres before creating the next scene.
         if self.previous_ids:
             remove_spheres(self, self.apply, self.previous_ids)
             self.previous_ids = []
 
-        seed = self.args.scene_seed
-
+        seed = 0 #fixed scene for now, can be randomized if needed
         objects = generate_grid_spheres(
-            num_spheres=self.args.obstacles,
-            random_seed=seed
+            num_spheres=self.args.obstacles, random_seed=seed
         )
 
         encoded = []
@@ -181,16 +191,8 @@ class Collector(Node):
             r = float(obj.primitives[0].dimensions[0])
             encoded.append([p.x, p.y, p.z, r])
 
-        # Generate fixed ground
-        ground = generate_ground()
-
-        # Apply ground and spheres
-        apply_scene(
-            self,
-            self.apply,
-            [ground] + objects
-        )  
-
+        if objects:
+            apply_scene(self, self.apply, objects)
         self.previous_ids = [obj.id for obj in objects]
         return encoded
 
@@ -242,10 +244,6 @@ class Collector(Node):
     def collect(self):
         samples = []
         attempts = 0
-
-        # Generate obstacles only once
-        obs = self.set_obstacles()
-
         while len(samples) < self.args.samples and attempts < self.args.max_attempts:
             attempts += 1
             try:

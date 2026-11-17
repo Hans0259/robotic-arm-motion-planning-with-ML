@@ -34,19 +34,19 @@ CONFIG = {
     "planning_time": 5.0,
 
     # Dataset Collection
-    "samples": 1000,
-    "max_attempts": 7000,
-    "obstacles": 5,
+    "samples": 500,
+    "max_attempts": 5000,
+    "obstacles": 10,
 
     # Validation
     "goal_tolerance": 0.01,
     "check_step": 0.05,
 
     # Random Seed
-    "seed": 42,
+    "seed": 7,
 
     # Dataset Output
-    "output": "data/train_dataset.npz"
+    "output": "data/val_dataset.npz"
 }
 
 
@@ -102,6 +102,20 @@ class Collector(Node):
         self.rng = np.random.default_rng(args.seed)
         self.previous_ids = []
 
+        from dobot_planning_scene.random_scene import apply_scene, remove_spheres
+        from dobot_planning_scene.ground_generator import generate_ground
+
+        # 清除场景中残留的 sphere_*（例如 launch 时生成的 15 个 grid 球）
+        req = GetPlanningScene.Request()
+        req.components.components = PlanningSceneComponents.WORLD_OBJECT_NAMES
+        existing = self.request(self.scenes, req).scene.world.collision_objects
+        old_ids = [o.id for o in existing if o.id.startswith('sphere_')]
+        if old_ids:
+            remove_spheres(self, self.apply, old_ids)
+
+        # 加入地面（只需一次）
+        apply_scene(self, self.apply, [generate_ground()])
+
     def request(self, client, request, timeout=30):
         future = client.call_async(request)
         rclpy.spin_until_future_complete(self, future, timeout_sec=timeout)
@@ -148,20 +162,20 @@ class Collector(Node):
         return None
 
     def set_obstacles(self):
-        # Reuse the three existing helpers in dobot_planning_scene/random_scene.py.
-        from dobot_planning_scene.random_scene import (
-            generate_random_spheres, apply_scene, remove_spheres,
-        )
+        # Reuse the existing helpers in dobot_planning_scene/random_scene.py.
+        from dobot_planning_scene.random_scene import apply_scene, remove_spheres
+        from dobot_planning_scene.grid_random_algorithm import generate_grid_spheres
 
         # Remove last iteration's spheres before creating the next scene.
         if self.previous_ids:
             remove_spheres(self, self.apply, self.previous_ids)
             self.previous_ids = []
 
-        seed = int(self.rng.integers(0, 2**31 - 1))
-        objects = generate_random_spheres(
+        seed = 0 #fixed scene for now, can be randomized if needed
+        objects = generate_grid_spheres(
             num_spheres=self.args.obstacles, random_seed=seed
         )
+
         encoded = []
         for obj in objects:
             # Keep IDs from Harry's generator (sphere_0, sphere_1, ...).
